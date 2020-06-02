@@ -1,0 +1,8 @@
+include VERSION
+include setup.py
+include requirements.txt
+graft tests
+graft ninjin
+
+global-exclude __pycache__
+global-exclude *.py[cod]

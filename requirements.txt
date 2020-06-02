@@ -1,0 +1,10 @@
+setuptools==46.4.0
+dynaconf==2.2.3
+pyyaml==5.3.1
+aio-pika==6.3.0
+gino==1.0.0
+marshmallow==3.6.0
+async_generator
+psycopg2-binary==2.8.5
+asyncpg==0.20.1
+asyncpgsa==0.26.1
