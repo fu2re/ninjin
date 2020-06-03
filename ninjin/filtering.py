@@ -1,6 +1,9 @@
 import operator
 
-from ninjin.lazy import lazy, listify
+from ninjin.lazy import (
+    lazy,
+    listify
+)
 
 SEPARATOR = '__'
 LESSER_THAN = 'lt'
@@ -34,7 +37,7 @@ class BasicFiltering:
 
     def __init__(self, model, filtering, allowed_filters):
         self.model = model
-        self.filtering = filtering
+        self.filtering = filtering or {}
         self.allowed_filters = allowed_filters
 
     @lazy

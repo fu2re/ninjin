@@ -1,5 +1,5 @@
 import asyncio
-from typing import Tuple, Callable
+from typing import Tuple
 
 import aio_pika
 from dynaconf import settings
@@ -8,10 +8,6 @@ from dynaconf import settings
 async def init_aio_pika(loop=None) -> Tuple[aio_pika.RobustConnection,
                                             aio_pika.RobustExchange,
                                             aio_pika.RobustChannel]:
-    """
-    Устанавливаем connection, открываем channel, задаем exchange.
-    Все данные по брокеру берем из broker_config
-    """
     if loop is None:
         loop = asyncio.get_event_loop()
 

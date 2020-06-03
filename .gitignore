@@ -201,3 +201,4 @@ dmypy.json
 venv/
 volumes/
 docker-compose.override.yml
+ninjin.egg-info/

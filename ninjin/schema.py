@@ -1,4 +1,8 @@
-from marshmallow import Schema, fields, EXCLUDE, post_load
+from marshmallow import (
+    EXCLUDE,
+    Schema,
+    fields
+)
 
 
 class PaginationSchema(Schema):
@@ -7,7 +11,7 @@ class PaginationSchema(Schema):
 
 
 class PayloadSchema(Schema):
-    resource = fields.String(required=False)
+    resource = fields.String(required=False, allow_none=True)
     handler = fields.String(required=True)
     payload = fields.Raw(required=False)
 

@@ -16,6 +16,15 @@ class BasicPagination:
         )
         self.limit = (self.page + 1) * self.items_per_page
         self.offset = self.page * self.items_per_page
+        self.next = False
 
     def paginate(self, query):
-        return query.limit(self.limit + 1).offset(self.offset)
+        return query.limit(self.limit).offset(self.offset)
+
+    @property
+    def result(self):
+        # TODO next page
+        return {
+            # 'next': self.next,
+            'page': self.page
+        }

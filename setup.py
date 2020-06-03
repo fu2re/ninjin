@@ -1,6 +1,9 @@
 import os
 
-from setuptools import setup, find_packages
+from setuptools import (
+    find_packages,
+    setup
+)
 
 __version__ = open("VERSION", 'r').read().strip()
 
@@ -18,8 +21,8 @@ setup(
         'dev': [
             'mock',
             'async-generator==1.10',
+            'faker',
             'flake8',
-            'flake8-eradicate',
             'flake8-print',
             'flake8-isort',
             'pytest',

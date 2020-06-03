@@ -2,10 +2,17 @@ import operator
 from typing import Iterable
 
 from aio_pika import IncomingMessage
+from gino import NoResultFound
 
 from ninjin.decorator import actor
-from ninjin.exceptions import UnknownHandler, ValidationError
-from ninjin.filtering import BasicFiltering, ALL
+from ninjin.exceptions import (
+    UnknownHandler,
+    ValidationError
+)
+from ninjin.filtering import (
+    ALL,
+    BasicFiltering
+)
 from ninjin.lazy import lazy
 from ninjin.logger import logger
 from ninjin.ordering import BasicOrdering
@@ -15,8 +22,8 @@ from ninjin.schema import IdSchema
 
 class Resource:
     consumer_key = None
-    serializer_class = IdSchema
-    deserializer_class = serializer_class
+    serializer_class = None
+    deserializer_class = None
 
     def __init__(self, deserialized_data, message: IncomingMessage):
         self.handler_name = deserialized_data['handler']
@@ -44,7 +51,9 @@ class Resource:
         raise NotImplementedError()
 
     def serialize(self, data: [dict, Iterable]) -> dict:
-        return self.serializer_class(many=isinstance(data, Iterable)).dump(data)
+        if not self.serializer_class:
+            return data
+        return self.serializer_class(many=isinstance(data, list)).dump(data)
 
     def deserialize(self, data: dict) -> dict:
         """
@@ -52,6 +61,8 @@ class Resource:
         :param data:
         :return:
         """
+        if not self.deserializer_class:
+            return data
         return self.deserializer_class().load(data)
 
     def validate(self, data: dict):
@@ -60,9 +71,10 @@ class Resource:
         :param data:
         :return:
         """
-        errors = self.serializer_class.validate(data)
-        if errors:
-            raise ValidationError('Deserialization Error: {}'.format(errors))
+        if self.serializer_class:
+            errors = self.serializer_class.validate(data)
+            if errors:
+                raise ValidationError('Deserialization Error: {}'.format(errors))
 
     async def dispatch(self):
         return await self.handler()
@@ -70,6 +82,8 @@ class Resource:
 
 class ModelResource(Resource):
     model = None
+    serializer_class = IdSchema
+    deserializer_class = serializer_class
     filtering_class = BasicFiltering
     pagination_class = BasicPagination
     ordering_class = BasicOrdering
@@ -125,21 +139,20 @@ class ModelResource(Resource):
 
     @lazy
     def query(self):
-        query = self.model.query
-        query = self.filter(query)
+        query = self.filter(self.model.query)
         query = self.order(query)
         query = self.paginate(query)
-        return query.gino
+        return query
 
-    async def exists(self, ident):
+    async def exists(self, expr):
         return await self._db.scalar(self._db.exists().where(
-            operator.eq(getattr(self.model, self._primary_key), ident)
+            expr
         ).select())
 
-    @actor(never_reply=True)
-    async def create(self):
+    async def perform_create(self):
         ident = self.payload[self._primary_key]
-        if not await self.exists(ident):
+        expr = operator.eq(getattr(self.model, self._primary_key), ident)
+        if not await self.exists(expr):
             return await self.model.create(**self.payload)
         else:
             logger.debug('Object {} with ident = {} already exists'.format(
@@ -148,23 +161,46 @@ class ModelResource(Resource):
             ))
 
     @actor(never_reply=True)
-    async def update(self):
+    async def create(self):
+        return await self.perform_create()
+
+    async def perform_update(self):
         """
         bulk update is not supported
         :return:
         """
-        obj = await self.get()
-        await obj.update(self.payload).apply()
+        obj = await self.perform_get()
+        if obj:
+            await obj.update(**self.payload).apply()
+        return obj
+
+    @actor(never_reply=True)
+    async def update(self):
+        return await self.perform_update()
+
+    async def perform_delete(self):
+        obj = await self.perform_get()
+        if obj:
+            await obj.delete()
+        return obj
 
     @actor(never_reply=True)
     async def delete(self):
-        obj = await self.get()
-        await obj.delete()
+        return await self.perform_delete()
+
+    async def perform_get(self):
+        try:
+            return await self.query.gino.one()
+        except NoResultFound:
+            return None
 
     @actor()
     async def get(self):
-        return await self.query.one()
+        return await self.perform_get()
+
+    async def perform_get_list(self):
+        return await self.query.gino.all()
 
     @actor()
     async def get_list(self):
-        return await self.query.all()
+        return await self.perform_get_list()
