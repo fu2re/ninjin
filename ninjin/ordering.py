@@ -1,7 +1,8 @@
 from typing import Iterable
 
-from ninjin.lazy import lazy
 from sqlalchemy import desc
+
+from ninjin.lazy import lazy
 
 
 class BasicOrdering:
@@ -11,7 +12,8 @@ class BasicOrdering:
 
     @lazy
     def ordering(self):
-        return self.ordering_.lstrip('-')
+        if self.ordering_:
+            return self.ordering_.lstrip('-')
 
     @lazy
     def applicable_ordering(self):

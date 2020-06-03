@@ -1,13 +1,22 @@
-import inspect
 import asyncio
+import inspect
+import json
 import re
 import uuid
 from collections import UserDict
 
+from aio_pika import (
+    DeliveryMode,
+    IncomingMessage,
+    Message
+)
 from dynaconf import settings
-from aio_pika import IncomingMessage, DeliveryMode, Message
 
-from ninjin.exceptions import UnknownConsumer, ImproperlyConfigured, IncorrectMessage
+from ninjin.exceptions import (
+    ImproperlyConfigured,
+    IncorrectMessage,
+    UnknownConsumer
+)
 from ninjin.lazy import lazy
 from ninjin.logger import logger
 from ninjin.schema import PayloadSchema
@@ -68,15 +77,20 @@ class Pool(UserDict):
         # self.service_name = service_name or os.path.split(os.path.dirname(inspect.stack()[1][1]))[-1]
         return settings.SERVICE_KEY
 
+    @lazy
+    def rpc_name(self):
+        return '{}.RPC'.format(self.service_name)
+
     async def establish(self):
         connection, exchange, channel = await init_aio_pika()
         self.connection = connection
         self.exchange = exchange
         self.channel = channel
         self.callback_queue = await self.channel.declare_queue(
-            name='{}.RPC'.format(self.service_name),
+            name=self.rpc_name,
             durable=True
         )
+        await self.callback_queue.bind(exchange)
 
     def get_queue(self, consumer_key):
         async def inner():
@@ -133,7 +147,8 @@ class Pool(UserDict):
         service_name: str,
         remote_resource=None,
         remote_handler='default',
-        correlation_id=None
+        correlation_id=None,
+        pagination=None,
     ):
         if payload is None:
             raise IncorrectMessage('Cannot publish empty message from')
@@ -141,7 +156,8 @@ class Pool(UserDict):
         msg = schema.dumps({
             'payload': payload,
             'resource': remote_resource,
-            'handler': remote_handler
+            'handler': remote_handler,
+            'pagination': pagination
         }).encode('utf-8')
 
         await self.exchange.publish(
@@ -149,10 +165,16 @@ class Pool(UserDict):
                 body=msg,
                 content_type="application/json",
                 delivery_mode=DeliveryMode.PERSISTENT,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
+                reply_to=self.rpc_name if correlation_id else None,
             ),
             routing_key=service_name
         )
+
+    async def on_rpc_response(self, message: IncomingMessage):
+        async with message.process(requeue=False):
+            f = self.futures.pop(message.correlation_id)
+            f.set_result(json.loads(message.body.decode()))
 
     async def rpc(
         self,
@@ -163,14 +185,10 @@ class Pool(UserDict):
     ):
         correlation_id = str(uuid.uuid4())
         # TODO loop support?
-        loop = asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
         future = loop.create_future()
         self.futures[correlation_id] = future
-
-        async def on_response(message: IncomingMessage):
-            self.futures.pop(message.correlation_id).set_result(message.body)
-
-        await self.callback_queue.consume(on_response)
+        await self.callback_queue.consume(self.on_rpc_response)
         await self.publish(
             payload,
             service_name=service_name,
