@@ -3,8 +3,10 @@ from typing import Tuple
 
 import aio_pika
 from dynaconf import settings
+from tenacity import retry, wait_fixed
 
 
+@retry(wait=wait_fixed(5))
 async def init_aio_pika(loop=None) -> Tuple[aio_pika.RobustConnection,
                                             aio_pika.RobustExchange,
                                             aio_pika.RobustChannel]:
