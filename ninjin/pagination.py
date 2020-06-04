@@ -25,6 +25,5 @@ class BasicPagination:
     def result(self):
         # TODO next page
         return {
-            # 'next': self.next,
             'page': self.page
         }
