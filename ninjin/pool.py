@@ -38,9 +38,10 @@ class Consumer(UserDict):
     async def consume(self):
         async def extractor(message: IncomingMessage):
             async with message.process(requeue=False):
-                deserialized_data = schema.loads(message.body.decode('utf-8'))
+                msg = message.body.decode('utf-8')
+                logger.debug('Received message: {}'.format(msg))
+                deserialized_data = schema.loads(msg)
                 resource_name = deserialized_data.get('resource')
-                # raise IncorrectMessage('Deserialization Error: {}'.format(errors))
                 try:
                     resource = self[resource_name]
                 except KeyError:
@@ -73,8 +74,12 @@ class Pool(UserDict):
 
     @lazy
     def service_name(self):
+        """
+        actually service name can be found by the\
+        >>> os.path.split(os.path.dirname(inspect.stack()[1][1]))[-1]
+        :return:
+        """
         # TODO
-        # self.service_name = service_name or os.path.split(os.path.dirname(inspect.stack()[1][1]))[-1]
         return settings.SERVICE_KEY
 
     @lazy

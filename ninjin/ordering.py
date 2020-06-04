@@ -17,7 +17,7 @@ class BasicOrdering:
 
     @lazy
     def applicable_ordering(self):
-        if self.ordering in self.allowed_ordering:
+        if self.ordering and self.ordering in self.allowed_ordering:
             return desc(self.ordering) if self.desc_ordering \
                 else self.ordering
 

@@ -1,7 +1,7 @@
 import types
 from functools import wraps
 
-import public as public
+import public
 
 
 def lazy(fn):
