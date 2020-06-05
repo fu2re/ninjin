@@ -139,10 +139,18 @@ class ModelResource(Resource):
 
     @lazy
     def query(self):
-        query = self.filter(self.model.query)
-        query = self.order(query)
-        query = self.paginate(query)
-        return query
+        """
+        To provide an easy inheritance
+        :return:
+        """
+        return self.filter(self.model.query)
+
+    @lazy
+    def ident(self):
+        try:
+            return self.payload.pop(self._primary_key)
+        except KeyError:
+            return self.filtering.filtering.get(self._primary_key)
 
     async def exists(self, expr):
         return await self._db.scalar(self._db.exists().where(
@@ -150,14 +158,16 @@ class ModelResource(Resource):
         ).select())
 
     async def perform_create(self):
-        ident = self.payload[self._primary_key]
-        expr = operator.eq(getattr(self.model, self._primary_key), ident)
+        expr = operator.eq(getattr(self.model, self._primary_key), self.ident)
         if not await self.exists(expr):
-            return await self.model.create(**self.payload)
+            return await self.model.create(
+                **{self._primary_key: self.ident},
+                **self.payload,
+            )
         else:
             logger.debug('Object {} with ident = {} already exists'.format(
                 self.model.__name__,
-                ident
+                self.ident
             ))
 
     @actor(never_reply=True)
@@ -190,7 +200,8 @@ class ModelResource(Resource):
 
     async def perform_get(self):
         try:
-            return await self.query.gino.one()
+            expr = operator.eq(getattr(self.model, self._primary_key), self.ident)
+            return await self.query.where(expr).gino.one()
         except NoResultFound:
             return None
 
@@ -199,7 +210,9 @@ class ModelResource(Resource):
         return await self.perform_get()
 
     async def perform_get_list(self):
-        return await self.query.gino.all()
+        query = self.order(self.query)
+        query = self.paginate(query)
+        return await query.gino.all()
 
     @actor()
     async def get_list(self):

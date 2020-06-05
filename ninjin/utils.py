@@ -3,8 +3,10 @@ from typing import Tuple
 
 import aio_pika
 from dynaconf import settings
+from tenacity import retry, wait_fixed
 
 
+@retry(wait=wait_fixed(5))
 async def init_aio_pika(loop=None) -> Tuple[aio_pika.RobustConnection,
                                             aio_pika.RobustExchange,
                                             aio_pika.RobustChannel]:
@@ -12,7 +14,7 @@ async def init_aio_pika(loop=None) -> Tuple[aio_pika.RobustConnection,
         loop = asyncio.get_event_loop()
 
     connection = await aio_pika.connect_robust(
-        host=settings.BROKER_NAME,
+        host=settings.BROKER_HOST,
         port=settings.BROKER_PORT,
         login=settings.BROKER_LOGIN,
         password=settings.BROKER_PASSWORD,

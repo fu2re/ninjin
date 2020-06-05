@@ -8,3 +8,5 @@ async_generator
 psycopg2-binary==2.8.5
 asyncpg==0.20.1
 asyncpgsa==0.26.1
+public==2019.4.13
+tenacity==6.2.0
