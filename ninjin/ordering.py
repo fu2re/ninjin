@@ -2,7 +2,7 @@ from typing import Iterable
 
 from sqlalchemy import desc
 
-from ninjin.lazy import lazy
+from ninjin.decorator import lazy
 
 
 class BasicOrdering:

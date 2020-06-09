@@ -1,4 +1,0 @@
-"""
-ninjin - means carrot (japanese)
-
-"""
