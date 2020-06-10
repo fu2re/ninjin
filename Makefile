@@ -1,4 +1,14 @@
-.PHONY: clean clean-pyc clean-build
+.PHONY: test install clean clean-pyc clean-build
+
+test:
+	flake8 ninjin
+	mypy ninjin
+	pytest
+	pip check
+
+install: ## install dev dependencies
+	python setup.py egg_info && \
+	pip install `sed -e 's/\[.*\]//g' ninjin.egg-info/requires.txt` ;
 
 clean: clean-build clean-pyc clean-test
 

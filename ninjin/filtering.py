@@ -1,6 +1,6 @@
 import operator
 
-from ninjin.lazy import (
+from ninjin.decorator import (
     lazy,
     listify
 )
@@ -11,13 +11,15 @@ LESSER_THAN_OR_EQUAL = 'lte'
 GREATER_THAN = 'gt'
 GREATER_THAN_OR_EQUAL = 'gte'
 EXACT = 'exact'
-CONTAINS = 'in'
+IN = 'in'
+CONTAINS = 'contains'
 ALL = (
     LESSER_THAN,
     LESSER_THAN_OR_EQUAL,
     GREATER_THAN,
     GREATER_THAN_OR_EQUAL,
     EXACT,
+    IN,
     CONTAINS
 )
 
@@ -32,7 +34,8 @@ class BasicFiltering:
         GREATER_THAN: operator.gt,
         GREATER_THAN_OR_EQUAL: operator.ge,
         EXACT: operator.eq,
-        CONTAINS: operator.contains
+        IN: lambda a, b: getattr(a, 'in_')(b),
+        CONTAINS: lambda a, b: getattr(a, 'contains')(b)
     }
 
     def __init__(self, model, filtering, allowed_filters):
@@ -57,10 +60,8 @@ class BasicFiltering:
     @listify
     def _operators(self):
         for field, op, val in self.applicable_filters:
-            yield self.OPERATOR[op](
-                getattr(self.model, field),
-                val
-            )
+            args = [getattr(self.model, field), val]
+            yield self.OPERATOR[op](*args)
 
     @lazy
     def where_clause(self):
@@ -76,4 +77,6 @@ class BasicFiltering:
         return not bool(self.applicable_filters)
 
     def filter(self, query):
-        return query.where(self.where_clause)
+        return query.where(
+            self.where_clause
+        )

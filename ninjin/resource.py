@@ -1,10 +1,14 @@
 import operator
+import re
 from typing import Iterable
 
 from aio_pika import IncomingMessage
 from gino import NoResultFound
 
-from ninjin.decorator import actor
+from ninjin.decorator import (
+    actor,
+    lazy
+)
 from ninjin.exceptions import (
     UnknownHandler,
     ValidationError
@@ -13,33 +17,32 @@ from ninjin.filtering import (
     ALL,
     BasicFiltering
 )
-from ninjin.lazy import lazy
 from ninjin.logger import logger
 from ninjin.ordering import BasicOrdering
 from ninjin.pagination import BasicPagination
 from ninjin.schema import IdSchema
 
 
-class Resource:
+class Resource():
+    pool = None
     consumer_key = None
     serializer_class = None
     deserializer_class = None
+    actors = {}
+    periodic_tasks = {}
+
+    @classmethod
+    def resource_name(cls):
+        return re.sub('(resource)$', '', getattr(cls, 'model', cls).__name__.lower())
+
+    def __repr__(self):
+        return 'resource'
 
     def __init__(self, deserialized_data, message: IncomingMessage):
-        self.handler_name = deserialized_data['handler']
-        self.payload = self.deserialize(deserialized_data.get('payload', {}))
+        self.deserialized_data = deserialized_data
         self.message = message
-
-    @lazy
-    def handler(self):
-        try:
-            handler = getattr(self, self.handler_name)
-        except (AttributeError, TypeError):
-            raise UnknownHandler('Handler with name `{}` is not registered at {}'.format(
-                self.handler,
-                self.__class__.__name__
-            ))
-        return handler
+        self.raw = deserialized_data.get('payload', {})
+        self.payload = None
 
     async def filter(self, *args, **kwargs):
         raise NotImplementedError()
@@ -77,7 +80,17 @@ class Resource:
                 raise ValidationError('Deserialization Error: {}'.format(errors))
 
     async def dispatch(self):
-        return await self.handler()
+        handler_name = self.deserialized_data['handler']
+        handler = self.actors.get(handler_name, self.periodic_tasks.get(handler_name))
+        if not handler:
+            raise UnknownHandler('Handler with name `{}` is not registered at {}'.format(
+                handler_name,
+                self.__class__.__name__
+            ))
+        self.serializer_class = getattr(handler, 'serializer_class', self.serializer_class)
+        self.deserializer_class = getattr(handler, 'deserializer_class', self.deserializer_class)
+        self.payload = self.deserialize(self.raw)
+        return await handler(self)
 
 
 class ModelResource(Resource):
@@ -112,9 +125,6 @@ class ModelResource(Resource):
             items_per_page=self.items_per_page,
             max_items_per_page=self.max_items_per_page
         )
-
-    async def dispatch(self):
-        return await self.handler()
 
     @lazy
     def _db(self):

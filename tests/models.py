@@ -43,5 +43,11 @@ class User(db.Model):
         default=datetime.utcnow(),
         onupdate=datetime.utcnow()
     )
-    nickname = db.Column("name", db.Unicode(), default=fake.name())
-    age = db.IntegerProperty(default=18)
+    nickname = db.Column(
+        db.Unicode(),
+        default=fake.name()
+    )
+    age = db.Column(
+        db.Integer,
+        default=18
+    )
