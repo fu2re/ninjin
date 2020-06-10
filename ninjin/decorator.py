@@ -6,8 +6,6 @@ from functools import wraps
 from ninjin.exceptions import ImproperlyConfigured
 from ninjin.logger import logger
 
-import public
-
 
 def lazy(fn):
     @property
@@ -21,7 +19,6 @@ def lazy(fn):
     return _lazyprop
 
 
-@public.add
 def listify(func):
     """`@listify` decorator"""
     @wraps(func)
