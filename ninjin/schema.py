@@ -1,4 +1,6 @@
 import typing
+
+import simplejson as simplejson
 from marshmallow import (
     EXCLUDE,
     Schema,
@@ -27,6 +29,7 @@ class PayloadSchema(Schema):
 
     class Meta:
         unknown = EXCLUDE
+        json_module = simplejson
 
     def loads(self, json_data: bytes, *args, **kwargs):
         return super(PayloadSchema, self).loads(
