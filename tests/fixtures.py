@@ -9,7 +9,7 @@ import pytest
 import sqlalchemy
 from async_generator import (
     async_generator,
-    yield_
+    yield_,
 )
 from gino import Gino
 from sqlalchemy.dialects.postgresql import UUID

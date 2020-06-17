@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
+"""Filtering classes."""
 import operator
 
 from ninjin.decorator import (
     lazy,
-    listify
+    listify,
 )
 
 SEPARATOR = '__'
@@ -20,14 +22,13 @@ ALL = (
     GREATER_THAN_OR_EQUAL,
     EXACT,
     IN,
-    CONTAINS
+    CONTAINS,
 )
 
 
 class BasicFiltering:
-    """
+    """ModelResource filtering class."""
 
-    """
     OPERATOR = {
         LESSER_THAN: operator.lt,
         LESSER_THAN_OR_EQUAL: operator.le,
@@ -35,10 +36,17 @@ class BasicFiltering:
         GREATER_THAN_OR_EQUAL: operator.ge,
         EXACT: operator.eq,
         IN: lambda a, b: getattr(a, 'in_')(b),
-        CONTAINS: lambda a, b: getattr(a, 'contains')(b)
+        CONTAINS: lambda a, b: getattr(a, 'contains')(b),
     }
 
     def __init__(self, model, filtering, allowed_filters):
+        """
+        Object is created per each request.
+
+        :param model: Gino model
+        :param filtering: filters
+        :param allowed_filters: filters allowed
+        """
         self.model = model
         self.filtering = filtering or {}
         self.allowed_filters = allowed_filters
@@ -46,6 +54,11 @@ class BasicFiltering:
     @lazy
     @listify
     def applicable_filters(self):
+        """
+        Get an applicable filters.
+
+        :return:
+        """
         for filter_, val in self.filtering.items():
             try:
                 field, op = filter_.split(SEPARATOR)
@@ -65,6 +78,11 @@ class BasicFiltering:
 
     @lazy
     def where_clause(self):
+        """
+        Get an operator to perform filtering.
+
+        :return:
+        """
         if self._operators:
             res = self._operators[0]
             for op in self._operators[1:]:
@@ -74,9 +92,20 @@ class BasicFiltering:
 
     @lazy
     def empty(self):
+        """
+        Check if filters is not presented.
+
+        :return: bool
+        """
         return not bool(self.applicable_filters)
 
-    def filter(self, query):
+    def filter(self, query):  # noqa: A003
+        """
+        Perform filtering with applicable filters.
+
+        :param query: SQL Alchemy core query.
+        :return: SQL Alchemy core query.
+        """
         return query.where(
-            self.where_clause
+            self.where_clause,
         )

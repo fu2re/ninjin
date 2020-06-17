@@ -2,7 +2,7 @@ import os
 
 from setuptools import (
     find_packages,
-    setup
+    setup,
 )
 
 __version__ = open("VERSION", 'r').read().strip()
