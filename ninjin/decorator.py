@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""Decorators."""
 import functools
 import inspect
 import types
@@ -8,6 +10,15 @@ from ninjin.logger import logger
 
 
 def lazy(fn):
+    """
+    Lazy property decorator.
+
+    Object property decorator to avoid multiple calculations of the same data.
+
+    :param fn:
+    :return:
+    """
+
     @property
     @wraps(fn)
     def _lazyprop(self):
@@ -20,7 +31,12 @@ def lazy(fn):
 
 
 def listify(func):
-    """`@listify` decorator"""
+    """
+    Listify decorator from generator.
+
+    :param func:
+    :return:
+    """
     @wraps(func)
     def new_func(*args, **kwargs):
         r = func(*args, **kwargs)
@@ -37,21 +53,22 @@ def actor(
     remote_resource=None,
     remote_handler='default',
     never_reply=False,
-    **kwargs
-):
+    **kwargs  # noqa: C816  # python 3.5 cannot handle comma here
+):  # noqa: D401
     """
-    Decorator to process received messages
+    Decorator to process messages from RMQ.
 
-    :param pool:
-    :param reply_to: Routing key where message should be pushed
-    :param remote_resource:
-    :param remote_handler:
-    :param never_reply:
+    Decorated method will consume a messages from RMQ.
+
+    :param reply_to: Routing key where message should be pushed if reply_to is not received
+    :param remote_resource: Reply to that resource
+    :param remote_handler: Reply to that handler
+    :param never_reply: Never reply even if reply_to is received
     :return:
     """
     def real_wrapper(func):
         if not inspect.iscoroutinefunction(func):
-            raise ImproperlyConfigured('{} is not coroutine'.format(func.__name__))
+            raise ImproperlyConfigured('{0} is not coroutine'.format(func.__name__))
 
         @functools.wraps(func)
         async def wrapper(
@@ -61,7 +78,7 @@ def actor(
 
             message_asked_for_reply = getattr(resource.message, 'reply_to')
             if reply_to and message_asked_for_reply:
-                logger.info('Queue is asked for reply at `{}`,'
+                logger.info('Queue is asked for reply at `{0}`,'
                             ' but reply queue is already defined'.format(func.__name__))
 
             queue_to_reply = reply_to or message_asked_for_reply
@@ -83,7 +100,7 @@ def actor(
                 service_name=queue_to_reply,
                 remote_resource=remote_resource,
                 remote_handler=remote_handler,
-                correlation_id=getattr(resource.message, 'correlation_id')
+                correlation_id=getattr(resource.message, 'correlation_id'),
             )
 
         wrapper.is_actor = True
@@ -97,12 +114,16 @@ def actor(
     return real_wrapper
 
 
-def periodic_task(
-    run_every: int
-):
+def periodic_task(run_every: int):  # noqa: D401
+    """
+    Decorator to run method periodically.
+
+    :param run_every: milliseconds
+    :return:
+    """
     def real_wrapper(func):
         if not inspect.iscoroutinefunction(func):
-            raise ImproperlyConfigured('{} is not coroutine'.format(func.__name__))
+            raise ImproperlyConfigured('{0} is not coroutine'.format(func.__name__))
 
         @functools.wraps(func)
         async def wrapper(
@@ -114,10 +135,9 @@ def periodic_task(
                 period=run_every,
                 payload={},
                 remote_resource=resource.__class__.resource_name(),
-                remote_handler=func.__name__
+                remote_handler=func.__name__,
             )
         wrapper.is_periodic_task = True
         return wrapper
 
     return real_wrapper
-

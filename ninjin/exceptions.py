@@ -1,18 +1,22 @@
+# -*- coding: utf-8 -*-
+"""Exceptions."""
+
+
 class ImproperlyConfigured(Exception):
-    pass
+    """Configuration error."""
 
 
 class UnknownConsumer(Exception):
-    pass
+    """Resource does not exist."""
 
 
 class UnknownHandler(Exception):
-    pass
+    """Handler does not exist."""
 
 
 class IncorrectMessage(Exception):
-    pass
+    """RMQ Message is invalid."""
 
 
 class ValidationError(Exception):
-    pass
+    """Payload is invalid or marshmallow schema is invalid."""
