@@ -39,7 +39,7 @@ class PayloadSchema(Schema):
 
     def loads(self, json_data: bytes, *args, **kwargs):
         """
-        Load data from json.
+        Load data from b'json'.
 
         :param json_data: incoming message data
         :param args:
@@ -53,13 +53,13 @@ class PayloadSchema(Schema):
 
     def dumps(self, obj: typing.Any, *args, many: bool = None, **kwargs):
         """
-        Dump data to json.
+        Dump data to b'json'.
 
         :param obj: dictionary or object
         :param args:
         :param many: true if multiple multiple objects presented
         :param kwargs:
-        :return: json
+        :return: bytes
         """
         return super(PayloadSchema, self).dumps(
             obj=obj,

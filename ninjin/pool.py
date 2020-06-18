@@ -16,7 +16,7 @@ from aio_pika import (
 from ninjin.exceptions import (
     ImproperlyConfigured,
     IncorrectMessage,
-    UnknownConsumer,
+    UnknownResource,
 )
 from ninjin.logger import logger
 from ninjin.schema import PayloadSchema
@@ -55,6 +55,7 @@ class QueuePool:
         :param exchange_auto_delete:
         """
         super().__init__()
+        self.resources = {}
         self.pool = pool
         self.channel = pool.channel
         self.exchange_name = exchange_name
@@ -143,7 +144,7 @@ class QueuePool:
 
     async def _on_rpc_response(self, message: IncomingMessage):
         async with message.process(requeue=False):
-            logger.debug(msg='Received PRC result: {0}'.format(message.body))
+            logger.debug(msg='Received RPC result: {0}'.format(message.body))
             try:
                 f = self.futures.pop(message.correlation_id)
                 f.set_result(json.loads(message.body.decode()))
@@ -173,7 +174,7 @@ class QueuePool:
             except KeyError:
                 error_msg = 'Resource {0} does not registered'.format(resource_name)
                 logger.info(error_msg)
-                raise UnknownConsumer(error_msg)
+                raise UnknownResource(error_msg)
             r = resource(deserialized_data, message)
             await r.dispatch()
 
@@ -321,6 +322,7 @@ class Pool(UserDict):
             exchange_name=self.exchange_name,
         )
         await self.queues.connect()
+        print('Zhopa')
 
     async def close(self):
         """

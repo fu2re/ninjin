@@ -6,7 +6,7 @@ class ImproperlyConfigured(Exception):
     """Configuration error."""
 
 
-class UnknownConsumer(Exception):
+class UnknownResource(Exception):
     """Resource does not exist."""
 
 
