@@ -1,10 +1,16 @@
 import pytest
+from tests.models import UserResource
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_resource_register():
-    pass
+async def test_resource_register(pool):
+    registered_resources = pool.queues.resources
+
+    assert registered_resources == {}
+    await pool.register(UserResource)
+    resource_model_name = UserResource.model.__name__.lower()
+    assert registered_resources[resource_model_name]
 
 
 async def test_resource():

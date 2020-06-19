@@ -36,8 +36,6 @@ class QueuePool:
     queue_callback = None
     queue_schedule = None
 
-    resources = {}
-
     futures = {}
 
     def __init__(self, pool: 'Pool',
