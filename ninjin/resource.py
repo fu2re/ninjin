@@ -138,7 +138,7 @@ class Resource:
         self.serializer_class = getattr(handler, 'serializer_class', self.serializer_class)
         self.deserializer_class = getattr(handler, 'deserializer_class', self.deserializer_class)
         self.payload = self.deserialize(self.raw)
-        return await handler(self)
+        return await handler.func(self)
 
 
 class ModelResource(Resource):

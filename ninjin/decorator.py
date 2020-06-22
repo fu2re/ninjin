@@ -9,7 +9,7 @@ from ninjin.exceptions import ImproperlyConfigured
 from ninjin.logger import logger
 
 
-def lazy(fn):
+def lazy(func):
     """
     Lazy property decorator.
 
@@ -20,11 +20,11 @@ def lazy(fn):
     """
 
     @property
-    @wraps(fn)
+    @wraps(func)
     def _lazyprop(self):
-        attr_name = '_lazy_' + fn.__name__
+        attr_name = '_lazy_' + func.__name__
         if not hasattr(self, attr_name):
-            setattr(self, attr_name, fn(self))
+            setattr(self, attr_name, func(self))
         return getattr(self, attr_name)
 
     return _lazyprop
@@ -104,6 +104,7 @@ def actor(
             )
 
         wrapper.is_actor = True
+        wrapper.func = func
         if 'serializer_class' in kwargs:
             wrapper.serializer_class = kwargs['serializer_class']
         if 'deserializer_class' in kwargs:
@@ -138,6 +139,7 @@ def periodic_task(run_every: int):  # noqa: D401
                 remote_handler=func.__name__,
             )
         wrapper.is_periodic_task = True
+        wrapper.func = func
         return wrapper
 
     return real_wrapper

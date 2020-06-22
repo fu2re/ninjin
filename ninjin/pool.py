@@ -162,6 +162,16 @@ class QueuePool:
                 remote_handler=unwrapped_payload['handler'],
                 remote_resource=unwrapped_payload['resource'],
             )
+            period = deserialized_data.get('period')
+            if not period:
+                return
+            # not necessary to check if it exist
+            await self.pool.schedule(
+                period=period,
+                payload={},
+                remote_resource=unwrapped_payload['resource'],
+                remote_handler=unwrapped_payload['handler'],
+            )
 
     async def _on_message(self, message: IncomingMessage):
         async with message.process(requeue=False):
